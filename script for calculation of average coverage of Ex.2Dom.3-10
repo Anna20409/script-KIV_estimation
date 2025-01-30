@@ -1,0 +1,53 @@
+
+
+#!/bin/bash
+
+# Ausgabedatei für die Ergebnisse
+OUTPUT_FILE="KIV.2.Estimation.Exon2.txt"
+
+# Überschrift zur Ausgabedatei hinzufügen
+echo -e "BAM_File\tEx1.Dom1\tEx1.Dom4\tEx1.Dom5\tEx1.Dom6\tEx1.Dom7\tEx1.Dom8\tEx1.Dom9\tEx1Dom10" > "$OUTPUT_FILE"
+
+# Liste der Regionen (geordnet für konsistente Spalten)
+declare -A REGIONS=(
+    ["chr6:160606477-160606658"]="Ex2.Dom3"
+    ["chr6:160600917-160601098"]="Ex2.Dom4"
+    ["chr6:160595354-160595535"]="Ex2.Dom5"
+    ["chr6:160590944-160591101"]="Ex2.Dom6"
+    ["chr6:160586449-160586630"]="Ex2.Dom7"
+    ["chr6:160578523-160578704"]="Ex2.Dom8"
+    ["chr6:160557390-160557571"]="Ex2.Dom9"
+    ["chr6:160548478-160548659"]="Ex2.Dom10"
+)
+
+# Schleife durch alle BAM-Dateien im aktuellen Verzeichnis
+for BAM_FILE in *.bam; do
+    echo "Verarbeite $(basename "$BAM_FILE") ..."
+    
+    # Initialisiere eine Zeile mit dem BAM-Dateinamen
+    OUTPUT_LINE="$(basename "$BAM_FILE")"
+
+    # Schleife durch die Regionen in der richtigen Reihenfolge
+    for REGION in "chr6:160606477-160606658" "chr6:160600917-160601098" \
+                  "chr6:160595354-160595535" "chr6:160590944-160591101" \
+                  "chr6:160586449-160586630" "chr6:160578523-160578704" \
+                  "chr6:160557390-160557571" "chr6:160548478-160548659"; do
+        # Berechne die Average Coverage mit samtools depth
+        COVERAGE=$(samtools depth -r "$REGION" "$BAM_FILE" | awk '{sum+=$3} END {if (NR > 0) print sum/NR; else print 0}')
+        
+        # Falls samtools keine Werte liefert, setze Coverage auf 0
+        if [[ -z "$COVERAGE" ]]; then
+            COVERAGE=0
+        fi
+
+        # Hänge den Coverage-Wert an die Zeile an
+        OUTPUT_LINE="$OUTPUT_LINE\t$COVERAGE"
+    done
+
+    # Schreibe die komplette Zeile in die Ausgabedatei
+    echo -e "$OUTPUT_LINE" >> "$OUTPUT_FILE"
+done
+
+echo "Berechnung abgeschlossen. Ergebnisse sind in $OUTPUT_FILE gespeichert."
+
+
